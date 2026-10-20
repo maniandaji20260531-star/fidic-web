@@ -1,0 +1,24 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>FIDIC 合同问答</title>
+<style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;margin:0;background:#f5f6f8;color:#222}
+.w{max-width:760px;margin:auto;padding:16px}h1{font-size:20px}textarea,input{width:100%;box-sizing:border-box;font-size:16px;padding:10px;border:1px solid #ccc;border-radius:8px}
+button{width:100%;margin-top:8px;padding:12px;font-size:16px;background:#1a5fb4;color:#fff;border:0;border-radius:8px}button:disabled{opacity:.5}
+.card{background:#fff;border-radius:10px;padding:14px;margin-top:14px;line-height:1.65;overflow-wrap:anywhere}.card table{border-collapse:collapse;display:block;overflow-x:auto}.card td,.card th{border:1px solid #ddd;padding:4px}
+.src{font-size:13px;color:#555;border-top:1px solid #eee;padding:6px 0}.note{font-size:12px;color:#888;margin-top:8px}</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script></head><body><div class="w">
+<h1>FIDIC 合同问答</h1><div class="note">基于公开资料知识库（世行/EBRD/ADB/CDB 文件、判例等），不含 FIDIC 官方红/黄/银皮书全文。仅供参考，不构成法律意见。</div>
+<input id="code" placeholder="访问码" style="display:none;margin-top:10px">
+<textarea id="q" rows="4" style="margin-top:10px" placeholder="例如：红皮书索赔通知期限是多少？Sub-Clause 20.1 怎么规定？"></textarea>
+<button id="b">提问</button><div id="out"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+fetch('/api/config').then(r=>r.json()).then(c=>{if(c.needCode){$('code').style.display='block';$('code').value=localStorage.code||''}});
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+$('b').onclick=async()=>{const q=$('q').value.trim();if(!q)return;localStorage.code=$('code').value;
+$('b').disabled=true;$('out').innerHTML='<div class="card">检索并生成中，约需 10–30 秒…</div>';
+try{const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,code:$('code').value})});
+const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);
+const md=window.marked?marked.parse(esc(j.answer)):'<pre style="white-space:pre-wrap">'+esc(j.answer)+'</pre>';
+$('out').innerHTML='<div class="card">'+md+'</div><div class="card"><b>引用来源</b>'+j.sources.map((s,i)=>`<div class="src">[${i+1}] ${esc(s.file)} L${s.start}–${s.end}<br><small>${esc(s.excerpt)}…</small></div>`).join('')+'</div>';
+}catch(e){$('out').innerHTML='<div class="card" style="color:#c00">出错：'+esc(e.message)+'</div>'}$('b').disabled=false};
+</script></body></html>
